@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -59,7 +60,6 @@ func (s *Server) Handle(conn net.Conn)  {
 	//1 ...当前连接的业务
 	fmt.Println(user.Name + "建立链接成功！")
 
-
 	//4. 优化代码，将逻辑封装在user.go中
 	/*
 	//2. 用户上线将用户加入到onlineMap中
@@ -72,6 +72,9 @@ func (s *Server) Handle(conn net.Conn)  {
 	*/
 	//4.
 	user.Online()
+
+	//8. 监听用户是否为活跃的channel
+	isLive := make(chan bool)
 
 	//3. 接收客户端发送的消息
 	go func() {
@@ -100,11 +103,38 @@ func (s *Server) Handle(conn net.Conn)  {
 			*/
 			//4. 用户针对msg进行消息处理
 			user.DoMessage(msg)
+
+			//8. 用户的任意消息，代表用户是一个活跃用户
+			isLive <- true
 		}
 	}()
 
 	//2. 当前handle阻塞
-	select {}
+	//select {}
+
+	//8. 使用select来实现用户超时强提
+	for {
+		select {
+		case <-isLive:
+			//当前用户是活跃的，应该重置定时器
+			//不做任何事情，为了激活select，更新下面的定时器
+
+		case <-time.After(time.Second * 10):
+			//已经超时
+			//将当前的User强制关闭
+			user.SendMessage("超时强制踢出！\n")
+
+			//销毁使用的资源
+			close(user.C)
+
+			//关闭连接
+			conn.Close()
+
+			//退出当前的Handler
+			return //runtime.Goexit()
+		}
+	}
+
 }
 
 //启动服务的接口
