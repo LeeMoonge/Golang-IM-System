@@ -34,7 +34,7 @@ func NewServer(ip string, port int) *Server {
 
 //2. 广播当前用户上线消息的方法
 func (s *Server) BroadCast(user *User, msg string) {
-	sendMsg := "[" + user.Name + "]" + user.Addr + ":" + msg
+	sendMsg := "[" + user.Addr + "]" + user.Name + ":" + msg
 	s.Message <- sendMsg
 }
 

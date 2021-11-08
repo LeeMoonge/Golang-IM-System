@@ -1,6 +1,9 @@
 package main
 
-import "net"
+import (
+	"net"
+	"strings"
+)
 
 //2.创建用户类
 
@@ -65,14 +68,32 @@ func (u *User)Offline()  {
 func (u *User)DoMessage(msg string)  {
 	//5. 用户处理消息的业务
 	if msg == "who" {
-		//查询当前在线用户都有哪些
+		//6. 查询当前在线用户都有哪些
 
 		u.server.mapLock.Lock() //!!!!!!!有上锁一定要解锁
 		for _, user := range u.server.OnlineMap {
-			onlionMsg := "[" + user.Name + "]" + user.Addr + ":" + "在线...\n"
+			onlionMsg := "[" + user.Addr + "]" + user.Name + ":" + "在线...\n"
 			u.SendMessage(onlionMsg)
 		}
 		u.server.mapLock.Unlock() //!!!!!!!!有上锁一定要解锁
+	//7. 修改用户名
+	} else if len(msg) >= 7 && msg[:7] == "rename|" {
+		//7.1 消息格式：rename|张三
+		newName := strings.Split(msg, "|")[1]
+
+		//7.2 判断名称是否存在
+		_, ok := u.server.OnlineMap[newName]
+		if ok {
+			u.SendMessage("当前名称已被占用！\n")
+		} else {
+			u.server.mapLock.Lock()
+			delete(u.server.OnlineMap, u.Name)
+			u.server.OnlineMap[newName] = u
+			u.server.mapLock.Unlock()
+
+			u.Name = newName
+			u.SendMessage("已成功更新用户名：" + newName + "\n")
+		}
 	} else {
 		u.server.BroadCast(u, msg)
 	}
