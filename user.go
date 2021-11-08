@@ -94,6 +94,32 @@ func (u *User)DoMessage(msg string)  {
 			u.Name = newName
 			u.SendMessage("已成功更新用户名：" + newName + "\n")
 		}
+	//9. 用户私信功能
+	} else if len(msg) >= 4 && msg[:3] == "to|" {
+		//9.1 消息格式： to|张三|消息内容
+
+		//9.1.1 获取对方的用户名
+		remoteName := strings.Split(msg, "|")[1]
+		if remoteName == "" {
+			u.SendMessage("消息格式不正确，请使用\"to|张三|你好啊\"格式。\n")
+			return
+		}
+
+		//9.1.2 根据用户名 得到对方的User对象
+		remoteUser, ok := u.server.OnlineMap[remoteName]
+		if !ok {
+			u.SendMessage("该用户名不存在或不在线，请重新发送！\n")
+			return
+		}
+
+		//9.1.3 获取消息内容，通过对方的User对象将消息发送过去
+		content := strings.Split(msg, "|")[2]
+		if content == "" {
+			u.SendMessage("无效发送内容，请重发！\n")
+			return
+		}
+		remoteUser.SendMessage(u.Name + "对你说:" + content)
+
 	} else {
 		u.server.BroadCast(u, msg)
 	}
