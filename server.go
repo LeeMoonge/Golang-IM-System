@@ -54,13 +54,14 @@ func (s *Server) ListenMessage() {
 
 func (s *Server) Handle(conn net.Conn)  {
 	//2. 用户上线新建用户对象
-	user := NewUser(conn)
+	user := NewUser(conn, s)
 
 	//1 ...当前连接的业务
 	fmt.Println(user.Name + "建立链接成功！")
 
 
-
+	//4. 优化代码，将逻辑封装在user.go中
+	/*
 	//2. 用户上线将用户加入到onlineMap中
 	s.mapLock.Lock()
 	s.OnlineMap[user.Name] = user
@@ -68,6 +69,9 @@ func (s *Server) Handle(conn net.Conn)  {
 
 	//2. 广播当前用户上线消息
 	s.BroadCast(user, "上线了")
+	*/
+	//4.
+	user.Online()
 
 	//3. 接收客户端发送的消息
 	go func() {
@@ -75,7 +79,10 @@ func (s *Server) Handle(conn net.Conn)  {
 		for {
 			n, err := conn.Read(buf)
 			if n == 0 {
-				s.BroadCast(user, "已下线！")
+				//4. 优化代码，将逻辑封装在user.go中
+				/*s.BroadCast(user, "已下线！")*/
+				//4.
+				user.Offline()
 				return
 			}
 			if err != nil && err != io.EOF {
@@ -86,8 +93,13 @@ func (s *Server) Handle(conn net.Conn)  {
 			//3. 提取用户的消息(去除'\n')
 			msg := string(buf[:n-1])
 
+			//4. 优化代码，将逻辑封装在user.go中
+			/*
 			//3. 将得到的消息进行广播
 			s.BroadCast(user, msg)
+			*/
+			//4. 用户针对msg进行消息处理
+			user.DoMessage(msg)
 		}
 	}()
 
