@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net"
+	"os"
 )
 
 type Client struct {
@@ -56,6 +58,26 @@ func (c *Client) menu() bool {
 	}
 }
 
+//4.1 更新用户名
+func (c *Client)UpdateName() bool {
+	fmt.Println(">>>请输入用户名")
+	fmt.Scanln(&c.Name)
+
+	sendMsg := "rename|" + c.Name + "\n"
+	_, err := c.conn.Write([]byte(sendMsg))
+	if err != nil {
+		fmt.Println("conn.Write Error: ", err)
+		return false
+	}
+	return true
+}
+
+//4.2 处理server回应的消息，直接显示到标准输出即可
+func (c *Client) DealResponse() {
+	//一旦client.conn有数据，就直接copy到stdout标准输出上，永久阻塞监听
+	io.Copy(os.Stdout, c.conn)
+}
+
 //3.3 新增Run()主业务循环
 func (c *Client) Run()  {
 	for c.flag != 0 {
@@ -75,6 +97,7 @@ func (c *Client) Run()  {
 		case 3:
 			//更新用户名
 			fmt.Println("更新用户名选择 ... ")
+			c.UpdateName()
 			break
 		}
 	}
@@ -102,6 +125,9 @@ func main() {
 		fmt.Println(">>>>>>连接服务器失败 ... ")
 		return
 	}
+
+	//4.3 在创建连接成功后开启一个专门处理server回执信息的GO程
+	go client.DealResponse()
 
 	fmt.Println(">>>>>>连接服务器成功 ... ")
 
